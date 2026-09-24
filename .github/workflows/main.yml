@@ -1,0 +1,47 @@
+name: Deploy to GoDaddy VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código fuente
+        uses: actions/checkout@v4
+
+      - name: Deploy en el VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          timeout: 60s
+          command_timeout: 5m
+          script: |
+            set -e
+            APP_DIR="/home/fcastillo/public_html/Adrian"
+            #NPM="/opt/cpanel/ea-nodejs22/bin/npm"
+
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] === Iniciando deploy ==="
+
+            cd "$APP_DIR"
+
+            echo "--> Obteniendo últimos cambios de GitHub..."
+            git checkout -- package.json
+            git checkout -- package-lock.json
+            git pull origin main
+
+            #echo "--> Instalando dependencias de producción..."
+            #$NPM install --omit=dev
+
+            echo "--> Reiniciando app via Passenger..."
+            mkdir -p tmp
+            touch tmp/restart.txt
+
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] === Deploy completado ==="
